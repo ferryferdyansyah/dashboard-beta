@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard Neraca Penatagunaan Tanah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--navy:#1c3a4e;--orange:#dc8329;--slate:#5b7a8c;--green:#2e7d55;--red:#b23a30;--teal:#2a7f8e;--brown:#7a5a2e;--gray:#7b8794;
+--bg:#eef2f5;--card:#fff;--ink:#1c2b36;--mute:#66788a;--line:#d9e1e7;--shadow:0 6px 22px rgba(28,58,78,.08)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--navy:#7fb0cf;--orange:#f0a04b;--slate:#8aa5b6;--green:#4fbf85;--red:#e0675c;--teal:#4cb5c6;--brown:#c99a55;--gray:#9aa6b2;--bg:#0d1b25;--card:#162b39;--ink:#e8eef3;--mute:#93a7b7;--line:#28404f;--shadow:0 6px 22px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{--navy:#7fb0cf;--orange:#f0a04b;--slate:#8aa5b6;--green:#4fbf85;--red:#e0675c;--teal:#4cb5c6;--brown:#c99a55;--gray:#9aa6b2;--bg:#0d1b25;--card:#162b39;--ink:#e8eef3;--mute:#93a7b7;--line:#28404f;--shadow:0 6px 22px rgba(0,0,0,.35)}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:90px;scroll-behavior:smooth}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+header{position:relative;overflow:hidden;color:#fff;padding:34px 28px 64px;background:linear-gradient(135deg,#12293a 0%,#1c3a4e 45%,#2a7f8e 100%)}
+header::before{content:"";position:absolute;inset:0;opacity:.14;background:repeating-radial-gradient(circle at 85% 20%,transparent 0 22px,#fff 23px 24px)}
+header::after{content:"";position:absolute;right:-60px;bottom:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(243,183,47,.35),transparent 70%)}
+.hw{position:relative;z-index:1;max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:18px}
+.mark{width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.12);border:2px solid #f3b72f;display:grid;place-items:center;font-weight:800;color:#f3b72f;font-size:18px;backdrop-filter:blur(6px);flex:none}
+header h1{font-size:clamp(17px,2.6vw,27px);font-weight:800;line-height:1.25}
+header p{font-size:13.5px;opacity:.8;margin-top:5px}
+#theme{margin-left:auto;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:99px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+#theme:hover{background:rgba(255,255,255,.25)}
+#theme svg{width:16px;height:16px}
+main{max-width:1280px;margin:-40px auto 0;padding:0 20px 60px;position:relative;z-index:2}
+#drop{border:2px dashed var(--slate);border-radius:22px;padding:54px 20px 44px;text-align:center;background:var(--card);cursor:pointer;transition:.25s;box-shadow:var(--shadow)}
+#drop.over,#drop:hover{border-color:var(--orange);transform:translateY(-3px);background:color-mix(in srgb,var(--orange) 8%,var(--card))}
+#drop .ic{width:74px;height:74px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--orange),#f3b72f);box-shadow:0 10px 24px rgba(220,131,41,.35)}
+#drop .ic svg{width:36px;height:36px}
+#drop b{font-size:21px;display:block;margin-bottom:8px}
+#drop>span{color:var(--mute);font-size:14px;display:block;max-width:560px;margin:0 auto}
+.steps{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px}
+.steps em{font-style:normal;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--mute)}
+#drop:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+#msg{margin-top:14px;font-size:14px;font-weight:600;text-align:center}
+#msg.ok{color:var(--green)}#msg.err{color:var(--red)}
+#dash{display:none}
+.bar{position:sticky;top:calc(8px + env(safe-area-inset-top,0px));z-index:10;display:flex;flex-wrap:wrap;gap:14px;align-items:end;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);border-radius:18px;padding:16px 18px;margin-bottom:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.bar label{display:flex;flex-direction:column;font-size:11.5px;color:var(--mute);font-weight:700;gap:5px;text-transform:uppercase;letter-spacing:.5px}
+select{font:inherit;font-size:15px;font-weight:700;text-transform:none;letter-spacing:0;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-width:200px;cursor:pointer}
+.meta{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.meta div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 14px;font-size:11.5px;color:var(--mute);font-weight:600}
+.meta b{display:block;font-size:16px;color:var(--ink)}
+button.ghost{font:inherit;font-weight:700;font-size:13px;padding:10px 15px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;transition:.15s}
+button.ghost:hover{background:var(--ink);color:var(--card)}
+button.ghost.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.chip{font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--bg);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px}
+.chip svg{width:13px;height:13px;flex:none}
+.chip i{font-style:normal;color:var(--mute);font-weight:500}
+.insight{display:flex;gap:14px;align-items:center;padding:16px 20px;border-radius:18px;margin-bottom:6px;color:#fff;background:linear-gradient(120deg,#1c3a4e,#2a7f8e);box-shadow:var(--shadow);font-size:14.5px;line-height:1.55}
+.insight .e{color:#f3b72f;display:grid;flex:none}
+.insight .e svg{width:28px;height:28px}
+.insight b{color:#f3b72f}
+.sec{display:flex;align-items:center;gap:10px;margin:30px 0 12px}
+.sec i{font-style:normal;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff;background:var(--navy)}
+h2{font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:.6px}
+.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{position:relative;background:var(--card);border-radius:18px;padding:18px 18px 16px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;transition:transform .2s,box-shadow .2s;animation:rise .5s both}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+.kpi:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(0,0,0,.16)}
+.kpi:nth-child(2){animation-delay:.06s}.kpi:nth-child(3){animation-delay:.12s}.kpi:nth-child(4){animation-delay:.18s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+.kpi .top{display:flex;align-items:center;gap:10px}
+.kpi .ico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);flex:none}
+.kpi .ico svg{width:20px;height:20px}
+.kpi .h{font-size:11.5px;font-weight:800;color:var(--mute);letter-spacing:.4px;line-height:1.3}
+.kpi .v{font-size:clamp(21px,2.3vw,30px);font-weight:800;padding:14px 0 2px;color:var(--c);font-variant-numeric:tabular-nums;word-break:break-all}
+.kpi .s{font-size:12px;color:var(--mute)}
+.pbar{height:7px;border-radius:9px;background:var(--bg);margin-top:11px;overflow:hidden}
+.pbar span{display:block;height:100%;border-radius:9px;background:var(--c);width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.box h3{font-size:13px;text-align:center;margin-bottom:10px}
+.box .c{position:relative;height:270px}
+.wide{margin-top:14px}.wide .c{height:340px}
+table{width:100%;border-collapse:collapse;font-size:14px;background:var(--card)}
+th{background:var(--navy);color:var(--card);padding:12px 10px;text-align:left;font-size:12.5px;letter-spacing:.4px}
+td{padding:10px;border-bottom:1px solid var(--line)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+tr:hover td{background:color-mix(in srgb,var(--teal) 9%,transparent)}
+.tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+.mini{display:inline-block;width:70px;height:6px;border-radius:9px;background:var(--bg);vertical-align:middle;margin-right:8px;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--c)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.note{font-size:12px;color:var(--mute);margin-top:8px;font-style:italic}
+@media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.meta{margin-left:0}.bar{position:static}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}select{min-width:0;width:100%}.bar label{flex:1 1 100%}header{padding:26px 18px 60px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header><div class="hw"><div class="mark">NT</div><div><h1 id="title">DASHBOARD NERACA PENATAGUNAAN TANAH</h1><p>Unggah file Excel, dashboard langsung terbentuk</p></div><button id="theme" data-i="theme" aria-label="Ganti tema"> Tema</button></div></header>
+<main>
+<div id="drop" tabindex="0" role="button" aria-label="Pilih file Excel">
+  <div class="ic" data-i="upload"></div>
+  <b>Tarik satu atau beberapa file Excel ke sini, atau klik untuk memilih</b>
+  <span>Bisa pilih banyak file sekaligus (tahan Ctrl/Shift). Format .xlsx, .xls, atau .csv. Data diproses di browser Anda, tidak diunggah ke server.</span>
+  <div class="steps"><em>1 · Unggah file</em><em>2 · Pilih wilayah</em><em>3 · Baca insight</em></div>
+  <input type="file" id="file" accept=".xlsx,.xls,.csv" multiple hidden>
+</div>
+<div id="msg" role="status"></div>
+
+<div id="dash">
+  <div class="bar">
+    <label>Kabupaten/Kota<select id="kab"></select></label>
+    <label>Kecamatan<select id="kec"></select></label>
+    <div class="meta"><div>Provinsi<b id="mProv">-</b></div><div>Tahun<b id="mTh">-</b></div><div>Poligon<b id="mPol">-</b></div><div>Kecamatan<b id="mKec">-</b></div></div>
+    <button class="ghost pri" id="add">+ Tambah file</button><button class="ghost" id="again">Ganti semua file</button>
+    <div id="chips" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px"></div>
+  </div>
+
+  <div class="insight"><div class="e" data-i="bulb"></div><div id="ins"></div></div>
+
+  <div class="sec"><i>1</i><h2>INDIKATOR UTAMA (Ha)</h2></div>
+  <div class="grid" id="g1"></div>
+  <div class="sec"><i style="background:var(--green)">2</i><h2>KESESUAIAN PENGGUNAAN TANAH TERHADAP RTRW (Ha)</h2></div>
+  <div class="grid" id="g2"></div>
+  <div class="sec"><i style="background:var(--brown)">3</i><h2>CADANGAN KARBON (Ton C)</h2></div>
+  <div class="grid" id="g3"></div>
+
+  <div class="sec"><i style="background:var(--orange)">4</i><h2>GRAFIK RINGKAS</h2></div>
+  <div class="charts">
+    <div class="box"><h3>Status perubahan penggunaan tanah</h3><div class="c"><canvas id="c1"></canvas></div></div>
+    <div class="box"><h3>Kesesuaian terhadap RTRW (Ha)</h3><div class="c"><canvas id="c2"></canvas></div></div>
+    <div class="box"><h3>Cadangan karbon lama vs baru (Ton C)</h3><div class="c"><canvas id="c3"></canvas></div></div>
+  </div>
+  <div class="box wide"><h3 id="c4t">Luas tanah berubah per kecamatan (Ha), 10 teratas</h3><div class="c"><canvas id="c4"></canvas></div></div>
+
+  <div class="sec"><i style="background:var(--teal)">5</i><h2>TABEL RINGKAS (sumber grafik)</h2></div>
+  <div class="tw"><table><thead><tr><th>Kelompok</th><th>Kategori</th><th style="text-align:right">Luas / Ton C</th><th style="text-align:right">Persen*</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <p class="note">*Persen terhadap total luas wilayah (tujuh baris pertama); terhadap cadangan karbon lama (tiga baris karbon).</p>
+</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id), C=v=>getComputedStyle(document.documentElement).getPropertyValue('--'+v).trim();
+const fmt=(v,d=2)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const up=s=>String(s??'').trim().toLowerCase();
+let DATA=[],charts={},areaKey='LUASHA';
+
+// ---------- ikon SVG ----------
+const S=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const IC={
+ map:S('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+ refresh:S('<path d="M20 11a8 8 0 0 0-14-4L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14 4l2-2"/><path d="M20 20v-5h-5"/>'),
+ layers:S('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'),
+ check:S('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
+ tick:S('<path d="M5 12l5 5L20 7"/>'),
+ alert:S('<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 17.5v.5"/>'),
+ link:S('<path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/>'),
+ ban:S('<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>'),
+ tree:S('<path d="M12 3 5 13h4l-3 5h12l-3-5h4z"/><path d="M12 18v3"/>'),
+ sprout:S('<path d="M12 21v-9"/><path d="M12 12C12 7 8 5 4 5c0 4 3 7 8 7z"/><path d="M12 14c0-4 3-6 8-6 0 4-3 7-8 6z"/>'),
+ down:S('<path d="M3 7l6 6 4-4 8 8"/><path d="M21 12v5h-5"/>'),
+ up:S('<path d="M3 17l6-6 4 4 8-8"/><path d="M16 7h5v5"/>'),
+ pct:S('<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>'),
+ file:S('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'),
+ upload:S('<path d="M12 16V5M7 10l5-5 5 5"/><path d="M4 17v3h16v-3"/>'),
+ bulb:S('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"/>'),
+ theme:S('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>')
+};
+document.querySelectorAll('[data-i]').forEach(e=>e.insertAdjacentHTML('afterbegin',IC[e.dataset.i]));
+
+// ---------- tema ----------
+$('theme').onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;d.dataset.theme=dark?'light':'dark';DATA.length&&render()};
+
+// ---------- baca file ----------
+const drop=$('drop'),inp=$('file');
+drop.onclick=()=>inp.click();
+drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};
+['dragover','dragenter'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>e.dataTransfer.files.length&&loadFiles([...e.dataTransfer.files],false));
+let append=false;
+inp.onchange=()=>{inp.files.length&&loadFiles([...inp.files],append);append=false;inp.value=''};
+$('add').onclick=()=>{append=true;inp.click()};
+$('again').onclick=()=>{DATA=[];FILES=[];$('dash').style.display='none';drop.style.display='';$('msg').textContent='';inp.value=''};
+
+let FILES=[];
+function say(t,c){$('msg').textContent=t;$('msg').className=c}
+const NEED=['WADMKK','GQREKLAS','KSPOLA','VNAME','TON_C_G','TON_C_Q'];
+// hanya kolom yang dipakai dashboard yang disimpan (hemat memori untuk file besar)
+const KEEP=['WADMPR','WADMKK','WADMKC','THNKGT','GQREKLAS','KSPOLA','VNAME','LUASHA','Shape_Area','TON_C_G','TON_C_Q'];
+const readFile=f=>new Promise((ok,no)=>{const r=new FileReader();r.onerror=()=>no(new Error('file tidak bisa dibaca'));
+  r.onload=e=>setTimeout(()=>{try{
+    const wb=XLSX.read(e.target.result,{type:'array',dense:true,sheets:0,cellFormula:false,cellHTML:false,cellText:false,cellStyles:false,cellNF:false});
+    const rs=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    for(let i=0;i<rs.length;i++){const o=rs[i],n={};for(const k of KEEP)if(k in o)n[k]=o[k];rs[i]=n}
+    ok(rs)}catch(x){no(x)}},20);
+  r.readAsArrayBuffer(f)});
+
+async function loadFiles(files,add){
+  const rows=add?DATA.slice():[],list=add?FILES.slice():[],bad=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];say(`Membaca ${f.name} (${i+1}/${files.length}) ... file besar bisa butuh beberapa saat`,'');
+    try{
+      const rs=await readFile(f);
+      const miss=NEED.filter(k=>!(rs[0]&&k in rs[0]));
+      if(!rs.length||miss.length){bad.push(`${f.name} (kolom hilang: ${miss.join(', ')||'data kosong'})`);continue}
+      if(list.some(x=>x.name===f.name&&x.n===rs.length)){bad.push(`${f.name} (sudah dimuat)`);continue}
+      rs.forEach(r=>r._src=f.name);
+      for(const r of rs)rows.push(r);   // aman untuk file besar
+      list.push({name:f.name,n:rs.length});
+    }catch(x){bad.push(`${f.name} (${x.message||x}; kemungkinan memori browser habis, coba simpan sebagai CSV atau pecah file)`)}
+  }
+  if(!list.length)return say('Tidak ada file yang valid. '+bad.join('; '),'err');
+  DATA=rows;FILES=list;
+  const sumL=rows.reduce((a,r)=>a+(+r.LUASHA||0),0);
+  areaKey=sumL>0?'LUASHA':'Shape_Area';
+  rows.forEach(r=>r._ha=areaKey==='LUASHA'?(+r.LUASHA||0):(+r.Shape_Area||0)/10000);
+  const prev=$('kab').value;
+  const kabs=[...new Set(rows.map(r=>r.WADMKK))].filter(Boolean).sort();
+  $('kab').innerHTML=(kabs.length>1?'<option value="">Semua kabupaten/kota</option>':'')+kabs.map(k=>`<option>${k}</option>`).join('');
+  if(kabs.includes(prev))$('kab').value=prev;
+  $('chips').innerHTML=FILES.map(f=>`<span class="chip">${IC.file}${f.name} <i>${fmt(f.n,0)} poligon</i></span>`).join('');
+  drop.style.display='none';$('dash').style.display='block';
+  fillKec();
+  say(`OK - ${list.length} file, ${fmt(rows.length,0)} poligon ditemukan`+(areaKey!=='LUASHA'?' (kolom LUASHA kosong, luas dihitung dari Shape_Area)':'')+(bad.length?'. Dilewati: '+bad.join('; '):''),bad.length?'err':'ok');
+}
+$('kab').onchange=fillKec;$('kec').onchange=render;
+function fillKec(){
+  const k=$('kab').value,rs=DATA.filter(r=>!k||r.WADMKK===k);
+  const kc=[...new Set(rs.map(r=>r.WADMKC))].filter(Boolean).sort();
+  $('kec').innerHTML='<option value="">Semua kecamatan</option>'+kc.map(x=>`<option>${x}</option>`).join('');
+  render();
+}
+
+// ---------- hitung ----------
+function agg(rs){
+  const s=(f,v,k='_ha')=>rs.reduce((a,r)=>a+(f(r)===v?(+r[k]||0):0),0);
+  const tot=rs.reduce((a,r)=>a+r._ha,0);
+  const lama=rs.reduce((a,r)=>a+(+r.TON_C_G||0),0),baru=rs.reduce((a,r)=>a+(+r.TON_C_Q||0),0);
+  const g=f=>v=>s(r=>up(r[f]),v);
+  return{tot,n:rs.length,
+    ber:g('GQREKLAS')('berubah'),tber:g('GQREKLAS')('tidak berubah'),
+    ses:g('KSPOLA')('sesuai'),tses:g('KSPOLA')('tidak sesuai'),men:g('KSPOLA')('mendukung'),
+    ters:g('VNAME')('tersedia'),ttrs:g('VNAME')('tidak tersedia'),lama,baru,sel:baru-lama};
+}
+const pc=(v,t)=>t?fmt(v/t*100,1)+'%':'0.0%';
+
+function card(head,col,val,sub,d=2,ico='',pct=null){
+  const w=pct===null?0:Math.max(0,Math.min(100,pct));
+  return `<div class="kpi" style="--c:${col}"><div class="top"><div class="ico">${IC[ico]||''}</div><div class="h">${head}</div></div><div class="v" data-v="${val}" data-d="${d}">0</div><div class="s">${sub}</div>${pct===null?'':`<div class="pbar"><span data-w="${w}"></span></div>`}</div>`;
+}
+function countUp(){
+  document.querySelectorAll('.v[data-v]').forEach(el=>{
+    const to=+el.dataset.v,d=+el.dataset.d,t0=performance.now(),dur=matchMedia('(prefers-reduced-motion:reduce)').matches?0:800;
+    (function step(t){const p=dur?Math.min((t-t0)/dur,1):1,e=1-Math.pow(1-p,3);el.textContent=fmt(to*e,d);if(p<1)requestAnimationFrame(step)})(t0);
+  });
+  requestAnimationFrame(()=>document.querySelectorAll('.pbar span').forEach(el=>el.style.width=el.dataset.w+'%'));
+}
+
+function render(){
+  const k=$('kab').value,kc=$('kec').value;
+  const rs=DATA.filter(r=>(!k||r.WADMKK===k)&&(!kc||r.WADMKC===kc));
+  const a=agg(rs),f=rs[0]||{};
+  const place=kc?kc:(k||'Jawa Timur');
+  $('title').textContent=`DASHBOARD NERACA PENATAGUNAAN TANAH ${place.toUpperCase()} ${f.THNKGT||''}`;
+  $('mProv').textContent=f.WADMPR||'-';$('mTh').textContent=f.THNKGT||'-';
+  $('mPol').textContent=fmt(a.n,0);$('mKec').textContent=new Set(rs.map(r=>r.WADMKC)).size;
+  const P=(v,t)=>t?v/t*100:0;
+
+  $('ins').innerHTML=`Wilayah <b>${place}</b> memiliki total luas <b>${fmt(a.tot)} Ha</b>. Sebanyak <b>${pc(a.ber,a.tot)}</b> tanah mengalami perubahan penggunaan, <b>${pc(a.ses,a.tot)}</b> sesuai RTRW dan <b>${pc(a.tses,a.tot)}</b> tidak sesuai. Cadangan karbon ${a.sel<0?'turun':'naik'} <b>${fmt(Math.abs(a.sel),0)} Ton C</b>.`;
+
+  $('g1').innerHTML=card('TOTAL LUAS WILAYAH (Ha)',C('navy'),a.tot,`Poligon: ${fmt(a.n,0)}`,2,'map',100)+
+    card('TANAH BERUBAH (Ha)',C('orange'),a.ber,pc(a.ber,a.tot)+' dari total luas',2,'refresh',P(a.ber,a.tot))+
+    card('TANAH TIDAK BERUBAH (Ha)',C('slate'),a.tber,pc(a.tber,a.tot)+' dari total luas',2,'layers',P(a.tber,a.tot))+
+    card('TANAH TERSEDIA (Ha)',C('green'),a.ters,pc(a.ters,a.tot)+' dari total luas',2,'check',P(a.ters,a.tot));
+  $('g2').innerHTML=card('SESUAI (Ha)',C('green'),a.ses,pc(a.ses,a.tot)+' dari total luas',2,'tick',P(a.ses,a.tot))+
+    card('TIDAK SESUAI (Ha)',C('red'),a.tses,pc(a.tses,a.tot)+' dari total luas',2,'alert',P(a.tses,a.tot))+
+    card('MENDUKUNG (Ha)',C('teal'),a.men,pc(a.men,a.tot)+' dari total luas',2,'link',P(a.men,a.tot))+
+    card('TANAH TIDAK TERSEDIA (Ha)',C('gray'),a.ttrs,pc(a.ttrs,a.tot)+' dari total luas',2,'ban',P(a.ttrs,a.tot));
+  $('g3').innerHTML=card('CADANGAN KARBON LAMA (Ton C)',C('brown'),a.lama,'Penggunaan tanah lama (Ton_C_G)',2,'tree',100)+
+    card('CADANGAN KARBON BARU (Ton C)',C('brown'),a.baru,'Penggunaan tanah baru (Ton_C_Q)',2,'sprout',P(a.baru,Math.max(a.lama,a.baru)))+
+    card('SELISIH BARU - LAMA (Ton C)',a.sel<0?C('red'):C('green'),a.sel,a.sel<0?'Penurunan cadangan (potensi emisi)':'Kenaikan cadangan (potensi serapan)',2,a.sel<0?'down':'up')+
+    card('PERUBAHAN CADANGAN (%)',a.sel<0?C('red'):C('green'),a.lama?a.sel/a.lama*100:0,'terhadap cadangan lama',2,'pct');
+  countUp();
+
+  // tabel
+  const T=[['Status perubahan','Berubah',a.ber,a.tot,'orange'],['Status perubahan','Tidak Berubah',a.tber,a.tot,'slate'],
+    ['Kesesuaian RTRW','Sesuai',a.ses,a.tot,'green'],['Kesesuaian RTRW','Tidak Sesuai',a.tses,a.tot,'red'],['Kesesuaian RTRW','Mendukung',a.men,a.tot,'teal'],
+    ['Ketersediaan tanah','Tersedia',a.ters,a.tot,'green'],['Ketersediaan tanah','Tidak Tersedia',a.ttrs,a.tot,'gray'],
+    ['Cadangan karbon (Ton C)','Lama',a.lama,a.lama,'brown'],['Cadangan karbon (Ton C)','Baru',a.baru,a.lama,'brown'],['Cadangan karbon (Ton C)','Selisih (Baru - Lama)',a.sel,a.lama,'navy']];
+  $('tb').innerHTML=T.map(r=>`<tr style="--c:${C(r[4])}"><td><span class="tag">${r[0]}</span></td><td>${r[1]}</td><td class="n">${fmt(r[2])}</td><td class="n"><span class="mini"><i style="width:${Math.min(100,Math.abs(P(r[2],r[3])))}%"></i></span>${pc(r[2],r[3])}</td></tr>`).join('');
+
+  // grafik
+  const opt={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  const txt=C('mute'),grid=C('line');
+  Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,sans-serif";
+  const axes={x:{ticks:{color:txt},grid:{display:false}},y:{ticks:{color:txt,callback:v=>v.toLocaleString('en-US')},grid:{color:grid}}};
+  const mk=(id,cfg)=>{charts[id]&&charts[id].destroy();charts[id]=new Chart($(id),cfg)};
+  const tip={callbacks:{label:c=>' '+fmt(c.parsed.y??c.parsed.x??c.parsed)}};
+  mk('c1',{type:'doughnut',data:{labels:['Berubah','Tidak Berubah'],datasets:[{data:[a.ber,a.tber],backgroundColor:[C('orange'),C('slate')],borderWidth:0,hoverOffset:8}]},
+    options:{...opt,cutout:'62%',plugins:{legend:{display:true,position:'bottom',labels:{color:txt,usePointStyle:true}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)} Ha (${pc(c.parsed,a.tot)})`}}}}});
+  mk('c2',{type:'bar',data:{labels:['Sesuai','Tidak Sesuai','Mendukung'],datasets:[{data:[a.ses,a.tses,a.men],backgroundColor:[C('green'),C('red'),C('teal')],borderRadius:10}]},
+    options:{...opt,scales:axes,plugins:{legend:{display:false},tooltip:tip}}});
+  mk('c3',{type:'bar',data:{labels:['Lama','Baru'],datasets:[{data:[a.lama,a.baru],backgroundColor:[C('slate'),C('brown')],borderRadius:10}]},
+    options:{...opt,scales:axes,plugins:{legend:{display:false},tooltip:tip}}});
+  // per kecamatan
+  const by={};rs.forEach(r=>{if(up(r.GQREKLAS)==='berubah')by[r.WADMKC]=(by[r.WADMKC]||0)+r._ha});
+  const top=Object.entries(by).sort((x,y)=>y[1]-x[1]).slice(0,10);
+  mk('c4',{type:'bar',data:{labels:top.map(t=>t[0]),datasets:[{data:top.map(t=>t[1]),backgroundColor:C('orange'),borderRadius:8}]},
+    options:{...opt,indexAxis:'y',scales:{x:{ticks:{color:txt},grid:{color:grid}},y:{ticks:{color:txt},grid:{display:false}}},plugins:{legend:{display:false},tooltip:tip}}});
+}
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>DATA.length&&render());
+</script>
+</body>
+</html>
