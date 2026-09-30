@@ -100,7 +100,7 @@ tr:hover td{background:color-mix(in srgb,var(--teal) 9%,transparent)}
 <div id="drop" tabindex="0" role="button" aria-label="Pilih file Excel">
   <div class="ic" data-i="upload"></div>
   <b>Tarik satu atau beberapa file Excel ke sini, atau klik untuk memilih</b>
-  <span>Bisa pilih banyak file sekaligus (tahan Ctrl/Shift). Format .xlsx, .xls, atau .csv. Data diproses di browser Anda, tidak diunggah ke server.</span>
+  <span>Bisa pilih banyak file sekaligus (tahan Ctrl/Shift). Format .xlsx, .xls, atau .csv. Nama kolom tidak sensitif huruf besar/kecil. Data diproses di browser Anda, tidak diunggah ke server.</span>
   <div class="steps"><em>1 · Unggah file</em><em>2 · Pilih wilayah</em><em>3 · Baca insight</em></div>
   <input type="file" id="file" accept=".xlsx,.xls,.csv" multiple hidden>
 </div>
@@ -187,11 +187,27 @@ function say(t,c){$('msg').textContent=t;$('msg').className=c}
 const NEED=['WADMKK','GQREKLAS','KSPOLA','VNAME','TON_C_G','TON_C_Q'];
 // hanya kolom yang dipakai dashboard yang disimpan (hemat memori untuk file besar)
 const KEEP=['WADMPR','WADMKK','WADMKC','THNKGT','GQREKLAS','KSPOLA','VNAME','LUASHA','Shape_Area','TON_C_G','TON_C_Q'];
+
+// normalisasi nama kolom: abaikan huruf besar/kecil, spasi, "_" dan "-"
+// contoh: "wadmkk", "WadmKK", "ton_c_g", "TON C G", "shape_area" semuanya dikenali
+const normKey=s=>String(s).replace(/[^a-z0-9]/gi,'').toUpperCase();
+const KEEPMAP={};KEEP.forEach(k=>KEEPMAP[normKey(k)]=k);
+const NAMECOLS=['WADMPR','WADMKK','WADMKC'];
+
 const readFile=f=>new Promise((ok,no)=>{const r=new FileReader();r.onerror=()=>no(new Error('file tidak bisa dibaca'));
   r.onload=e=>setTimeout(()=>{try{
     const wb=XLSX.read(e.target.result,{type:'array',dense:true,sheets:0,cellFormula:false,cellHTML:false,cellText:false,cellStyles:false,cellNF:false});
     const rs=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
-    for(let i=0;i<rs.length;i++){const o=rs[i],n={};for(const k of KEEP)if(k in o)n[k]=o[k];rs[i]=n}
+    const cache={}; // header asli -> nama baku (atau null bila tidak dipakai)
+    for(let i=0;i<rs.length;i++){
+      const o=rs[i],n={};
+      for(const k in o){
+        let c=cache[k];
+        if(c===undefined)c=cache[k]=KEEPMAP[normKey(k)]||null;
+        if(c&&!(c in n))n[c]=o[k];
+      }
+      rs[i]=n;
+    }
     ok(rs)}catch(x){no(x)}},20);
   r.readAsArrayBuffer(f)});
 
@@ -204,7 +220,11 @@ async function loadFiles(files,add){
       const miss=NEED.filter(k=>!(rs[0]&&k in rs[0]));
       if(!rs.length||miss.length){bad.push(`${f.name} (kolom hilang: ${miss.join(', ')||'data kosong'})`);continue}
       if(list.some(x=>x.name===f.name&&x.n===rs.length)){bad.push(`${f.name} (sudah dimuat)`);continue}
-      rs.forEach(r=>r._src=f.name);
+      rs.forEach(r=>{
+        r._src=f.name;
+        // seragamkan nama wilayah agar "kediri" dan "KEDIRI" tidak terpecah di dropdown
+        for(const k of NAMECOLS)if(r[k]!==undefined)r[k]=String(r[k]).trim().replace(/\s+/g,' ').toUpperCase();
+      });
       for(const r of rs)rows.push(r);   // aman untuk file besar
       list.push({name:f.name,n:rs.length});
     }catch(x){bad.push(`${f.name} (${x.message||x}; kemungkinan memori browser habis, coba simpan sebagai CSV atau pecah file)`)}
